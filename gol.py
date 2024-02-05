@@ -79,6 +79,7 @@ class GameOfLife():
             [[0 for x in range(self.max_x)] for y in range(self.max_y)]
 
     def generate_random_map(self):
+        self.clear_map()
         rand = random.randint(MIN_RAND_CELLS, MAX_RAND_CELLS)
         fail_count = 0
         self.generation = 0
