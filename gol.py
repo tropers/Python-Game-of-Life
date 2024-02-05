@@ -7,7 +7,7 @@ refactored almost 11 years later in 2024.
 
 import random
 import time
-import copy
+import math
 import signal
 import sys
 from curses import *
@@ -16,8 +16,11 @@ from typing import List
 # Delay used inbetween updates for game loop
 DELAY = .05
 
-MIN_RAND_CELLS = 100
-MAX_RAND_CELLS = 900
+MIN_RAND_CELLS = 3
+MAX_RAND_CELLS = 1000
+
+# Used to determine how big the game field can be in size
+MAX_INFO_STR_LEN = 56
 
 class GameOfLife():
     """
@@ -37,6 +40,15 @@ class GameOfLife():
         self.gol_map: List[List[int]] = \
             [[0 for x in range(self.max_x)] for y in range(self.max_y)]
 
+    def nodelay(self, on_off: bool):
+        if on_off:
+            self.stdscr.nodelay(1)
+        else:
+            self.stdscr.nodelay(0)
+
+    def getch(self):
+        return self.stdscr.getch()
+
     def init_screen(self):
         """
         init_screen initializes the curses environment
@@ -55,13 +67,21 @@ class GameOfLife():
         self.stdscr.attrset(color_pair(1) + A_BOLD)
         noecho()
 
-        self.max_y, _ = self.stdscr.getmaxyx()
+        self.max_y, self.max_x = self.stdscr.getmaxyx()
         self.max_y -= self.screen_buffer_offset
-        self.max_x = self.max_y * 2
+        self.max_x -= (MAX_INFO_STR_LEN + 2 * self.screen_offset)
+
+    def clear_map(self):
+        self.generation = 0
+        self.alive = 0
+
+        self.gol_map: List[List[int]] = \
+            [[0 for x in range(self.max_x)] for y in range(self.max_y)]
 
     def generate_random_map(self):
         rand = random.randint(MIN_RAND_CELLS, MAX_RAND_CELLS)
         fail_count = 0
+        self.generation = 0
 
         for _ in range(rand):
             cell_set = False
@@ -81,13 +101,13 @@ class GameOfLife():
 
     def print_key_hints(self):
         self.stdscr.move(self.max_y + 2, self.screen_offset)
-        self.stdscr.addstr("Use arrow keys to move and")
+        self.stdscr.addstr("Use arrow keys (or hjkl) to move and    ")
         self.stdscr.move(self.max_y + 3, self.screen_offset)
-        self.stdscr.addstr("SPACEBAR to create / destroy cells.")
+        self.stdscr.addstr("SPACEBAR to create / destroy cells.     ")
         self.stdscr.move(self.max_y + 4, self.screen_offset)
-        self.stdscr.addstr("-----------------------------------")
+        self.stdscr.addstr("----------------------------------------")
         self.stdscr.move(self.max_y + 5, self.screen_offset)
-        self.stdscr.addstr("Finish with RETURN.")
+        self.stdscr.addstr("Finish with q / RETURN.                 ")
 
     def draw_symbol(self, x, y, symbol, attr = 0):
         self.stdscr.move(y + self.screen_offset, x + self.screen_offset)
@@ -104,8 +124,8 @@ class GameOfLife():
         self.stdscr.refresh()
 
     def map_drawer_loop(self):
-        cur_x = 0
-        cur_y = 0
+        cur_x = math.floor(self.max_x / 2)
+        cur_y = math.floor(self.max_y / 2)
 
         self.map_drawer_draw()
         self.print_key_hints()
@@ -115,16 +135,16 @@ class GameOfLife():
         com = self.stdscr.getch()
         while com != ord('\n'):
 
-            if com == KEY_UP:
+            if com == KEY_UP or com == ord('k'):
                 if cur_y >= self.screen_offset:
                     cur_y -= 1
-            elif com == KEY_DOWN:
+            elif com == KEY_DOWN or com == ord('j'):
                 if cur_y <= self.max_y:
                     cur_y += 1
-            elif com == KEY_LEFT:
+            elif com == KEY_LEFT or com == ord('h'):
                 if cur_x >= self.screen_offset:
                     cur_x -= 1
-            elif com == KEY_RIGHT:
+            elif com == KEY_RIGHT or com == ord('l'):
                 if cur_x <= self.max_x:
                     cur_x += 1
             elif com == ord(' '):
@@ -136,6 +156,8 @@ class GameOfLife():
                     self.gol_map[cur_y][cur_x] = 0
                     self.draw_symbol(cur_x, cur_y, '.')
                     self.alive -= 1
+            elif com == ord('q'):
+                break
             else:
                 pass
 
@@ -214,16 +236,29 @@ class GameOfLife():
 
     def print_game_data(self):
         self.stdscr.attrset(color_pair(1) + A_BOLD)
-        self.stdscr.move(self.max_y + 2, self.screen_offset + 1)
-        self.stdscr.addstr(f"Generation: {self.generation}")
+        self.stdscr.move(self.max_y + 2, self.screen_offset)
+        self.stdscr.addstr(f"Generation: {self.generation}      ")
         self.stdscr.move(self.max_y + 2, self.screen_offset + 30)
         self.stdscr.addstr("           ")
         self.stdscr.move(self.max_y + 2, self.screen_offset + 30)
         self.stdscr.addstr(f"Alive: {self.alive}")
+
         self.stdscr.move(int(self.max_y / 2), self.max_x + self.screen_offset + 1)
-        self.stdscr.addstr("GAME OF LIFE in Python")
+        self.stdscr.addstr("GAME OF LIFE in Python      ")
         self.stdscr.move(int(self.max_y / 2) + 1, self.max_x + self.screen_offset + 1)
-        self.stdscr.addstr("Tristan Ropers - 2013, 2024")
+        self.stdscr.addstr("Tristan Ropers - 2013, 2024 ")
+        self.stdscr.move(int(self.max_y / 2) + 2, self.max_x + self.screen_offset + 1)
+        self.stdscr.addstr("-------------------------------------------------------")
+        self.stdscr.move(int(self.max_y / 2) + 3, self.max_x + self.screen_offset + 1)
+        self.stdscr.addstr("r - Reset game field (will randomly generate a new map)")
+        self.stdscr.move(int(self.max_y / 2) + 4, self.max_x + self.screen_offset + 1)
+        self.stdscr.addstr("c - Clear game field")
+        self.stdscr.move(int(self.max_y / 2) + 5, self.max_x + self.screen_offset + 1)
+        self.stdscr.addstr("e - Enter edit mode")
+        self.stdscr.move(int(self.max_y / 2) + 6, self.max_x + self.screen_offset + 1)
+        self.stdscr.addstr("q - Quit")
+        self.stdscr.move(int(self.max_y / 2) + 7, self.max_x + self.screen_offset + 1)
+        self.stdscr.addstr("SPACE - Pause the game.")
 
     def game_step(self):
         self.draw_map()
@@ -240,6 +275,29 @@ def signal_handler(sig, frame):
     endwin()
     sys.exit(0)
 
+def fetch_input(gol: GameOfLife, running: bool, is_paused: bool) -> (bool, bool):
+    gol.nodelay(True)
+    ch = gol.getch()
+    if ch > -1:
+        if ch == ord('r'):
+            gol.generate_random_map()
+            is_paused = False
+        elif ch == ord('e'):
+            gol.map_drawer_loop()
+            is_paused = False
+        elif ch == ord('c'):
+            gol.clear_map()
+            gol.draw_map()
+            gol.print_game_data()
+            is_paused = True
+        elif ch == ord('q'):
+            running = False
+        elif ch == ord(' '):
+            is_paused = not is_paused
+
+    gol.nodelay(False)
+    return running, is_paused
+
 if __name__ == "__main__":
     # Setup CTRL-C handler
     signal.signal(signal.SIGINT, signal_handler)
@@ -247,8 +305,14 @@ if __name__ == "__main__":
     gol = GameOfLife()
     gol.game_setup()
 
-    while True:
-        gol.game_step()
+    running = True
+    is_paused = False
+
+    while running:
+        if not is_paused:
+            gol.game_step()
+
+        running, is_paused = fetch_input(gol, running, is_paused)
         time.sleep(DELAY)
 
     endwin()
