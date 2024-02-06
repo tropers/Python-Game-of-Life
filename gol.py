@@ -259,7 +259,7 @@ class GameOfLife():
         self.stdscr.move(int(self.max_y / 2) + 6, self.max_x + self.screen_offset + 1)
         self.stdscr.addstr("q - Quit")
         self.stdscr.move(int(self.max_y / 2) + 7, self.max_x + self.screen_offset + 1)
-        self.stdscr.addstr("SPACE - Pause the game.")
+        self.stdscr.addstr("SPACE - Pause the game")
 
     def game_step(self):
         self.draw_map()
