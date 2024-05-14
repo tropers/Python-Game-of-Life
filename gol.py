@@ -27,7 +27,7 @@ class GameOfLife():
     GameOfLife implements John Conway's Game of Life in Python using
     the curses library.
     """
-    def __init__(self, screen_offset: int = 1):
+    def __init__(self, screen_offset: int=1):
         self.alive = 0
         self.generation = 0
         self.max_x = 0
@@ -52,11 +52,11 @@ class GameOfLife():
     def getch(self):
         return self.stdscr.getch()
 
-    def move_cursor_by(self, y, x):
+    def move_cursor_by(self, y: int, x: int):
         self.cur_y = (self.cur_y + y) % self.max_y
         self.cur_x = (self.cur_x + x) % self.max_x
 
-    def __remove_echoed_str(self, y, x, length):
+    def __remove_echoed_str(self, y: int, x: int, length: int):
         self.stdscr.move(y, x)
         _, screen_max_x = self.stdscr.getmaxyx()
 
@@ -70,7 +70,7 @@ class GameOfLife():
                 # Redraw cell if in game field
                 self.draw_cell(y, (x + i) % self.max_x)
 
-    def move_multiple(self, ch: chr):
+    def move_multiple(self, ch: int):
         self.nodelay(False)
         echo()
 
@@ -157,7 +157,7 @@ class GameOfLife():
         self.stdscr.move(self.max_y + 5, self.screen_offset)
         self.stdscr.addstr("Finish with q / RETURN.                 ")
 
-    def draw_symbol(self, y, x, symbol, attr = 0):
+    def draw_symbol(self, y: int, x: int, symbol: str, attr = 0):
         self.stdscr.move(y + self.screen_offset, x + self.screen_offset)
         self.stdscr.addstr(symbol, attr)
 
@@ -209,7 +209,7 @@ class GameOfLife():
         elif choice == ord('n'):
             self.map_drawer_loop()
 
-    def draw_cell(self, y, x):
+    def draw_cell(self, y: int, x: int):
         self.stdscr.move(y + self.screen_offset, x + self.screen_offset)
         if self.gol_map[y][x] == 0:
             self.stdscr.addstr('.')
@@ -235,7 +235,7 @@ class GameOfLife():
         else:
             self.alive -= 1
 
-    def check_cell(self, x, y, new_gol_map):
+    def check_cell(self, x: int, y: int, new_gol_map: List[List[int]]):
         sum_neighbours = 0
 
         for i in range(-1, 2):
