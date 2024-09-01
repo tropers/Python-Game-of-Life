@@ -1,3 +1,5 @@
+#!/bin/env python
+
 """
 gol.py
 
@@ -10,13 +12,14 @@ import time
 import math
 import signal
 import sys
-from curses import *
+from curses import init_pair, initscr, echo, noecho, start_color, use_default_colors, color_pair, \
+    COLOR_GREEN, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, A_BOLD, endwin
 from typing import List
 
 # Delay used inbetween updates for game loop
-DELAY = .05
+DELAY = .02
 
-MIN_RAND_CELLS = 3
+MIN_RAND_CELLS = 100
 MAX_RAND_CELLS = 1000
 
 # Used to determine how big the game field can be in size
@@ -37,6 +40,9 @@ class GameOfLife():
 
         self.cur_x = 0
         self.cur_y = 0
+
+        self.running = False
+        self.is_paused = False
 
         self.init_screen()
 
@@ -101,13 +107,8 @@ class GameOfLife():
         self.stdscr = initscr()
         self.stdscr.keypad(True)
         start_color()
-        init_pair(1, COLOR_GREEN, COLOR_BLACK)
-        init_pair(2, COLOR_CYAN, COLOR_BLACK)
-        init_pair(3, COLOR_MAGENTA, COLOR_BLACK)
-        init_pair(4, COLOR_BLUE, COLOR_BLACK)
-        init_pair(5, COLOR_YELLOW, COLOR_BLACK)
-        init_pair(6, COLOR_RED, COLOR_BLACK)
-        init_pair(7, COLOR_CYAN, COLOR_CYAN)
+        use_default_colors()
+        init_pair(1, COLOR_GREEN, -1)
         self.stdscr.attrset(color_pair(1) + A_BOLD)
         noecho()
 
@@ -309,6 +310,58 @@ class GameOfLife():
         self.gol_map = self.calculate_new_map()
         self.generation += 1
 
+    def fetch_input(self):
+        if not self.is_paused:
+            self.nodelay(True)
+
+        ch = self.getch()
+        if ch > -1:
+            if ch == ord('r'):
+                self.generate_random_map()
+                self.is_paused = False
+            elif ch == ord('e'):
+                self.map_drawer_loop()
+                self.is_paused = False
+            elif ch == ord('c'):
+                self.clear_map()
+                self.draw_map()
+                self.print_game_data()
+                self.is_paused = True
+            elif ch == ord('h'):
+                self.move_cursor_by(0, -1)
+            elif ch == ord('j'):
+                self.move_cursor_by(1, 0)
+            elif ch == ord('k'):
+                self.move_cursor_by(-1, 0)
+            elif ch == ord('l'):
+                self.move_cursor_by(0, 1)
+            elif ch == ord('q'):
+                self.running = False
+            # When numbers are being pressed, get number
+            # and move multiple columns / lines
+            elif chr(ch).isnumeric():
+                self.move_multiple(ch)
+            elif ch == ord('p') or ch == ord('\n'):
+                self.is_paused = not self.is_paused
+            elif ch == ord(' '):
+                self.toggle_cell_at_cursor()
+
+        self.nodelay(False)
+
+    def run(self):
+        self.game_setup()
+
+        self.running = True
+        self.is_paused = False
+
+        while self.running:
+            self.game_draw()
+            self.fetch_input()
+
+            if not self.is_paused:
+                time.sleep(DELAY)
+                self.game_step()
+
 def signal_handler(sig, frame):
     """
     signal_handler handles CTRL-C to gracefully exit curses
@@ -316,61 +369,8 @@ def signal_handler(sig, frame):
     endwin()
     sys.exit(0)
 
-def fetch_input(gol: GameOfLife, running: bool, is_paused: bool) -> (bool, bool):
-    if not is_paused:
-        gol.nodelay(True)
-
-    ch = gol.getch()
-    if ch > -1:
-        if ch == ord('r'):
-            gol.generate_random_map()
-            is_paused = False
-        elif ch == ord('e'):
-            gol.map_drawer_loop()
-            is_paused = False
-        elif ch == ord('c'):
-            gol.clear_map()
-            gol.draw_map()
-            gol.print_game_data()
-            is_paused = True
-        elif ch == ord('h'):
-            gol.move_cursor_by(0, -1)
-        elif ch == ord('j'):
-            gol.move_cursor_by(1, 0)
-        elif ch == ord('k'):
-            gol.move_cursor_by(-1, 0)
-        elif ch == ord('l'):
-            gol.move_cursor_by(0, 1)
-        elif ch == ord('q'):
-            running = False
-        # When numbers are being pressed, get number
-        # and move multiple columns / lines
-        elif chr(ch).isnumeric():
-            gol.move_multiple(ch)
-        elif ch == ord('p') or ch == ord('\n'):
-            is_paused = not is_paused
-        elif ch == ord(' '):
-            gol.toggle_cell_at_cursor()
-
-    gol.nodelay(False)
-    return running, is_paused
-
 if __name__ == "__main__":
     # Setup CTRL-C handler
     signal.signal(signal.SIGINT, signal_handler)
-
-    gol = GameOfLife()
-    gol.game_setup()
-
-    running = True
-    is_paused = False
-
-    while running:
-        gol.game_draw()
-        running, is_paused = fetch_input(gol, running, is_paused)
-
-        if not is_paused:
-            time.sleep(DELAY)
-            gol.game_step()
-
+    GameOfLife().run()
     endwin()
