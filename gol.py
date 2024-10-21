@@ -47,13 +47,13 @@ class GameOfLife():
         self.init_screen()
 
         self.gol_map: List[List[int]] = \
-            [[0 for x in range(self.max_x)] for y in range(self.max_y)]
+            [[0 for _ in range(self.max_x)] for _ in range(self.max_y)]
 
     def nodelay(self, on_off: bool):
         if on_off:
-            self.stdscr.nodelay(1)
+            self.stdscr.nodelay(True)
         else:
-            self.stdscr.nodelay(0)
+            self.stdscr.nodelay(False)
 
     def getch(self):
         return self.stdscr.getch()
@@ -124,7 +124,7 @@ class GameOfLife():
         self.alive = 0
 
         self.gol_map: List[List[int]] = \
-            [[0 for x in range(self.max_x)] for y in range(self.max_y)]
+            [[0 for _ in range(self.max_x)] for _ in range(self.max_y)]
 
     def generate_random_map(self):
         self.clear_map()
@@ -262,7 +262,7 @@ class GameOfLife():
     def calculate_new_map(self) -> List[List[int]]:
         # new_gol_map = copy.deepcopy(self.gol_map)
         new_gol_map: List[List[int]] = \
-            [[0 for x in range(self.max_x)] for y in range(self.max_y)]
+            [[0 for _ in range(self.max_x)] for _ in range(self.max_y)]
 
         for x in range(self.max_x):
             for y in range(self.max_y):
