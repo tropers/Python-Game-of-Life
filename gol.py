@@ -12,12 +12,26 @@ import time
 import math
 import signal
 import sys
-from curses import init_pair, initscr, echo, noecho, start_color, use_default_colors, color_pair, \
-    COLOR_GREEN, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, A_BOLD, endwin
+from curses import (
+    init_pair,
+    initscr,
+    echo,
+    noecho,
+    start_color,
+    use_default_colors,
+    color_pair,
+    COLOR_GREEN,
+    KEY_UP,
+    KEY_DOWN,
+    KEY_LEFT,
+    KEY_RIGHT,
+    A_BOLD,
+    endwin,
+)
 from typing import List
 
 # Delay used inbetween updates for game loop
-DELAY = .02
+DELAY = 0.02
 
 MIN_RAND_CELLS = 100
 MAX_RAND_CELLS = 1000
@@ -25,12 +39,14 @@ MAX_RAND_CELLS = 1000
 # Used to determine how big the game field can be in size
 MAX_INFO_STR_LEN = 56
 
-class GameOfLife():
+
+class GameOfLife:
     """
     GameOfLife implements John Conway's Game of Life in Python using
     the curses library.
     """
-    def __init__(self, screen_offset: int=1):
+
+    def __init__(self, screen_offset: int = 1):
         self.alive = 0
         self.generation = 0
         self.max_x = 0
@@ -46,8 +62,9 @@ class GameOfLife():
 
         self.init_screen()
 
-        self.gol_map: List[List[int]] = \
-            [[0 for _ in range(self.max_x)] for _ in range(self.max_y)]
+        self.gol_map: List[List[int]] = [
+            [0 for _ in range(self.max_x)] for _ in range(self.max_y)
+        ]
 
     def nodelay(self, on_off: bool):
         if on_off:
@@ -71,7 +88,7 @@ class GameOfLife():
             if x + i >= self.max_x:
                 # Prevent from moving over the edge of the screen
                 if x + i < screen_max_x:
-                    self.draw_symbol(y, x + i, ' ')
+                    self.draw_symbol(y, x + i, " ")
             else:
                 # Redraw cell if in game field
                 self.draw_cell(y, (x + i) % self.max_x)
@@ -88,15 +105,15 @@ class GameOfLife():
 
         noecho()
         self.__remove_echoed_str(self.cur_y, self.cur_x, len(num))
-        num = num[:len(num) - 1]
+        num = num[: len(num) - 1]
 
-        if ch == ord('h'):
+        if ch == ord("h"):
             self.move_cursor_by(0, -int(num))
-        elif ch == ord('j'):
+        elif ch == ord("j"):
             self.move_cursor_by(int(num), 0)
-        elif ch == ord('k'):
+        elif ch == ord("k"):
             self.move_cursor_by(-int(num), 0)
-        elif ch == ord('l'):
+        elif ch == ord("l"):
             self.move_cursor_by(0, int(num))
 
     def init_screen(self):
@@ -114,7 +131,7 @@ class GameOfLife():
 
         self.max_y, self.max_x = self.stdscr.getmaxyx()
         self.max_y -= self.screen_buffer_offset
-        self.max_x -= (MAX_INFO_STR_LEN + 2 * self.screen_offset)
+        self.max_x -= MAX_INFO_STR_LEN + 2 * self.screen_offset
 
         self.cur_x = math.floor(self.max_x / 2)
         self.cur_y = math.floor(self.max_y / 2)
@@ -123,8 +140,9 @@ class GameOfLife():
         self.generation = 0
         self.alive = 0
 
-        self.gol_map: List[List[int]] = \
-            [[0 for _ in range(self.max_x)] for _ in range(self.max_y)]
+        self.gol_map: List[List[int]] = [
+            [0 for _ in range(self.max_x)] for _ in range(self.max_y)
+        ]
 
     def generate_random_map(self):
         self.clear_map()
@@ -158,7 +176,7 @@ class GameOfLife():
         self.stdscr.move(self.max_y + 5, self.screen_offset)
         self.stdscr.addstr("Finish with q / RETURN.                 ")
 
-    def draw_symbol(self, y: int, x: int, symbol: str, attr = 0):
+    def draw_symbol(self, y: int, x: int, symbol: str, attr=0):
         self.stdscr.move(y + self.screen_offset, x + self.screen_offset)
         self.stdscr.addstr(symbol, attr)
 
@@ -166,29 +184,33 @@ class GameOfLife():
         self.draw_map()
         self.print_key_hints()
 
-        self.stdscr.move(self.cur_y + self.screen_offset, self.cur_x + self.screen_offset)
+        self.stdscr.move(
+            self.cur_y + self.screen_offset, self.cur_x + self.screen_offset
+        )
 
         com = self.stdscr.getch()
         while True:
-            if com == KEY_UP or com == ord('k'):
+            if com == KEY_UP or com == ord("k"):
                 self.cur_y = (self.cur_y - 1) % self.max_y
-            elif com == KEY_DOWN or com == ord('j'):
+            elif com == KEY_DOWN or com == ord("j"):
                 self.cur_y = (self.cur_y + 1) % self.max_y
-            elif com == KEY_LEFT or com == ord('h'):
+            elif com == KEY_LEFT or com == ord("h"):
                 self.cur_x = (self.cur_x - 1) % self.max_x
-            elif com == KEY_RIGHT or com == ord('l'):
+            elif com == KEY_RIGHT or com == ord("l"):
                 self.cur_x = (self.cur_x + 1) % self.max_x
-            elif com == ord(' '):
+            elif com == ord(" "):
                 self.toggle_cell_at_cursor()
                 self.draw_cell(self.cur_y, self.cur_x)
-            elif com == ord('q') or com == ord('\n'):
+            elif com == ord("q") or com == ord("\n"):
                 break
             elif com > 0 and chr(com).isnumeric():
                 self.move_multiple(com)
             else:
                 pass
 
-            self.stdscr.move(self.cur_y + self.screen_offset, self.cur_x + self.screen_offset)
+            self.stdscr.move(
+                self.cur_y + self.screen_offset, self.cur_x + self.screen_offset
+            )
             com = self.stdscr.getch()
 
         self.stdscr.clear()
@@ -199,28 +221,28 @@ class GameOfLife():
 
         # Wait until valid input is given
         while True:
-            if choice == ord('y') or choice == ord('n'):
+            if choice == ord("y") or choice == ord("n"):
                 break
             choice = self.stdscr.getch()
 
         self.stdscr.clear()
 
-        if choice == ord('y'):
+        if choice == ord("y"):
             self.generate_random_map()
-        elif choice == ord('n'):
+        elif choice == ord("n"):
             self.map_drawer_loop()
 
     def draw_cell(self, y: int, x: int):
         self.stdscr.move(y + self.screen_offset, x + self.screen_offset)
         if self.gol_map[y][x] == 0:
-            self.stdscr.addstr('.')
+            self.stdscr.addstr(".")
         else:
             if random.randint(0, 1) == 1:
                 colpair = color_pair(1) + A_BOLD
             else:
                 colpair = color_pair(1)
 
-            self.draw_symbol(y, x, '@', colpair)
+            self.draw_symbol(y, x, "@", colpair)
 
     def draw_map(self):
         for x in range(self.max_x):
@@ -261,8 +283,9 @@ class GameOfLife():
 
     def calculate_new_map(self) -> List[List[int]]:
         # new_gol_map = copy.deepcopy(self.gol_map)
-        new_gol_map: List[List[int]] = \
-            [[0 for _ in range(self.max_x)] for _ in range(self.max_y)]
+        new_gol_map: List[List[int]] = [
+            [0 for _ in range(self.max_x)] for _ in range(self.max_y)
+        ]
 
         for x in range(self.max_x):
             for y in range(self.max_y):
@@ -303,7 +326,9 @@ class GameOfLife():
         self.print_game_data()
 
         # Move cursor to last position
-        self.stdscr.move(self.cur_y + self.screen_offset, self.cur_x + self.screen_offset)
+        self.stdscr.move(
+            self.cur_y + self.screen_offset, self.cur_x + self.screen_offset
+        )
         self.stdscr.refresh()
 
     def game_step(self):
@@ -316,34 +341,34 @@ class GameOfLife():
 
         ch = self.getch()
         if ch > -1:
-            if ch == ord('r'):
+            if ch == ord("r"):
                 self.generate_random_map()
                 self.is_paused = False
-            elif ch == ord('e'):
+            elif ch == ord("e"):
                 self.map_drawer_loop()
                 self.is_paused = False
-            elif ch == ord('c'):
+            elif ch == ord("c"):
                 self.clear_map()
                 self.draw_map()
                 self.print_game_data()
                 self.is_paused = True
-            elif ch == ord('h'):
+            elif ch == ord("h"):
                 self.move_cursor_by(0, -1)
-            elif ch == ord('j'):
+            elif ch == ord("j"):
                 self.move_cursor_by(1, 0)
-            elif ch == ord('k'):
+            elif ch == ord("k"):
                 self.move_cursor_by(-1, 0)
-            elif ch == ord('l'):
+            elif ch == ord("l"):
                 self.move_cursor_by(0, 1)
-            elif ch == ord('q'):
+            elif ch == ord("q"):
                 self.running = False
             # When numbers are being pressed, get number
             # and move multiple columns / lines
             elif chr(ch).isnumeric():
                 self.move_multiple(ch)
-            elif ch == ord('p') or ch == ord('\n'):
+            elif ch == ord("p") or ch == ord("\n"):
                 self.is_paused = not self.is_paused
-            elif ch == ord(' '):
+            elif ch == ord(" "):
                 self.toggle_cell_at_cursor()
 
         self.nodelay(False)
@@ -362,12 +387,14 @@ class GameOfLife():
                 time.sleep(DELAY)
                 self.game_step()
 
+
 def signal_handler(sig, frame):
     """
     signal_handler handles CTRL-C to gracefully exit curses
     """
     endwin()
     sys.exit(0)
+
 
 if __name__ == "__main__":
     # Setup CTRL-C handler
